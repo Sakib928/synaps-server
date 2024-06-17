@@ -13,7 +13,7 @@ app.use(express.json())
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1towayy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -33,6 +33,8 @@ async function run() {
         // await client.db("admin").command({ ping: 1 });
         // console.log("Pinged your deployment. You successfully connected to MongoDB!");
         const userCollection = client.db('Synaps').collection('users');
+        const sessionCollection = client.db('Synaps').collection('sessions');
+        const feedbackCollection = client.db('Synaps').collection('feedbacks');
 
         // jwt related apis
         app.post('/jwt', async (req, res) => {
@@ -82,6 +84,10 @@ async function run() {
             const result = await userCollection.insertOne(user);
             res.send(result);
         })
+        app.get('/users', async (req, res) => {
+            const result = await userCollection.find().toArray();
+            res.send(result);
+        })
         // find user role
         app.get('/role', async (req, res) => {
             const email = req.query.email;
@@ -89,6 +95,77 @@ async function run() {
             const query = { email: email };
             const user = await userCollection.findOne(query);
             res.send(user?.role);
+        })
+
+        // add sessions
+        app.post('/sessions', async (req, res) => {
+            const session = req.body;
+            // console.log(session)
+            const result = await sessionCollection.insertOne(session);
+            res.send(result);
+        })
+
+        app.get('/sessions', async (req, res) => {
+            const result = await sessionCollection.find({ $or: [{ status: 'pending' }, { status: 'approved' }] }).toArray();
+            res.send(result);
+        })
+
+        // approve or reject sessions
+        app.patch('/approve/:id', async (req, res) => {
+            const id = req.params.id;
+            const fee = parseFloat(req.body.fee);
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    status: 'approved',
+                    fee: fee
+                }
+            }
+            const result = await sessionCollection.updateOne(query, update);
+            res.send(result)
+        })
+        app.patch('/reject/:id', async (req, res) => {
+            const id = req.params.id;
+            const feedback = req.body;
+            console.log(feedback);
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    status: 'rejected'
+                }
+            }
+            const result = await sessionCollection.updateOne(query, update);
+            const addFeedback = await feedbackCollection.insertOne(feedback);
+            res.send(result)
+        })
+
+        app.post('/reject', async (req, res) => {
+            const rejection = req.body;
+            console.log(rejection);
+        })
+
+        // make admin or tutor
+        app.patch('/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    role: 'admin'
+                }
+            }
+            const result = await userCollection.updateOne(query, update);
+            res.send(result);
+        })
+        app.patch('/tutor/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    role: 'tutor'
+                }
+            }
+            const result = await userCollection.updateOne(query, update);
+            res.send(result);
         })
 
 
