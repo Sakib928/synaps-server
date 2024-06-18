@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 require('dotenv').config();
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
@@ -12,8 +13,6 @@ app.use(cors())
 app.use(express.json())
 
 
-
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1towayy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -139,9 +138,34 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/reject', async (req, res) => {
-            const rejection = req.body;
-            console.log(rejection);
+        // get feedback
+        app.get('/feedback/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log('wanting feedback for id', id)
+            const filter = { sessionId: id };
+            const feedback = await feedbackCollection.find(filter, { sort: { _id: -1 } }).toArray();
+            res.send(feedback[0]);
+        })
+
+        // resend approve request
+        app.patch('/resend/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    status: 'pending',
+                }
+            }
+            const result = await sessionCollection.updateOne(query, update);
+            res.send(result);
+        })
+
+        // tutors-sessions
+        app.get('/mySessions', async (req, res) => {
+            const email = req.query.email;
+            const query = { tutorEmail: email };
+            const result = await sessionCollection.find(query).toArray();
+            res.send(result);
         })
 
         // make admin or tutor
