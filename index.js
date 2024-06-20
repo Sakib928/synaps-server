@@ -34,6 +34,7 @@ async function run() {
         const userCollection = client.db('Synaps').collection('users');
         const sessionCollection = client.db('Synaps').collection('sessions');
         const feedbackCollection = client.db('Synaps').collection('feedbacks');
+        const materialCollection = client.db('Synaps').collection('materials');
 
         // jwt related apis
         app.post('/jwt', async (req, res) => {
@@ -123,6 +124,13 @@ async function run() {
             const result = await sessionCollection.updateOne(query, update);
             res.send(result)
         })
+        app.get('/approved', async (req, res) => {
+            const email = req.query.email;
+            const query = { status: 'approved', tutorEmail: email };
+            const result = await sessionCollection.find(query).toArray();
+            res.send(result);
+        })
+
         app.patch('/reject/:id', async (req, res) => {
             const id = req.params.id;
             const feedback = req.body;
@@ -189,6 +197,37 @@ async function run() {
                 }
             }
             const result = await userCollection.updateOne(query, update);
+            res.send(result);
+        })
+
+        // materials related apis
+        app.post('/materials', async (req, res) => {
+            const material = req.body;
+            const result = await materialCollection.insertOne(material);
+            res.send(result);
+        })
+
+        app.get('/materials', async (req, res) => {
+            const email = req.query.email;
+            const filter = { tutorEmail: email };
+            const result = await materialCollection.find(filter).toArray();
+            res.send(result);
+        })
+
+        app.patch('/materials/:id', async (req, res) => {
+            const update = req.body;
+            const id = req.params.id;
+            const query = { sessionId: id };
+            const updatedMaterial = {
+                $set: {
+
+                }
+            }
+        })
+
+        app.delete('/materials/:id', async (req, res) => {
+            const filter = { sessionId: id };
+            const result = await materialCollection.deleteOne(filter);
             res.send(result);
         })
 
