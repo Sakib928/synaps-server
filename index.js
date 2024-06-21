@@ -3,6 +3,7 @@ const app = express();
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY)
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 
@@ -35,6 +36,7 @@ async function run() {
         const sessionCollection = client.db('Synaps').collection('sessions');
         const feedbackCollection = client.db('Synaps').collection('feedbacks');
         const materialCollection = client.db('Synaps').collection('materials');
+        const bookedSessionCollection = client.db('Synaps').collection('bookedSessions');
 
         // jwt related apis
         app.post('/jwt', async (req, res) => {
@@ -107,6 +109,13 @@ async function run() {
 
         app.get('/sessions', async (req, res) => {
             const result = await sessionCollection.find({ $or: [{ status: 'pending' }, { status: 'approved' }] }).toArray();
+            res.send(result);
+        })
+
+        app.get('/singleSession/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const result = await sessionCollection.findOne(filter);
             res.send(result);
         })
 
@@ -217,19 +226,55 @@ async function run() {
         app.patch('/materials/:id', async (req, res) => {
             const update = req.body;
             const id = req.params.id;
-            const query = { sessionId: id };
+            const query = { _id: new ObjectId(id) };
             const updatedMaterial = {
                 $set: {
-
+                    title: update.title,
+                    image: update.image,
+                    driveLink: update.driveLink
                 }
             }
+            const result = await materialCollection.updateOne(query, updatedMaterial);
+            res.send(result);
         })
 
         app.delete('/materials/:id', async (req, res) => {
-            const filter = { sessionId: id };
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
             const result = await materialCollection.deleteOne(filter);
             res.send(result);
         })
+
+        // payment related apis
+        app.post("/create-payment-intent", async (req, res) => {
+            const { payment } = req.body;
+            const amount = parseInt(payment * 100);
+            console.log('amount to pay in intent', amount);
+            // Create a PaymentIntent with the order amount and currency
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ['card']
+            });
+
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        });
+
+        app.post('/bookedSessions', async (req, res) => {
+            const session = req.body;
+            const result = await bookedSessionCollection.insertOne(session);
+            res.send(result);
+        })
+
+        app.get('/bookedSessions', async (req, res) => {
+            const email = req.query.email;
+            const query = { studentEmail: email };
+            const result = await bookedSessionCollection.find(query).toArray();
+            res.send(result);
+        })
+
 
 
     } finally {
