@@ -39,6 +39,7 @@ async function run() {
         const bookedSessionCollection = client.db('Synaps').collection('bookedSessions');
         const reviewCollection = client.db('Synaps').collection('reviews');
         const noteCollection = client.db('Synaps').collection('notes');
+        const announcementCollection = client.db('Synaps').collection('announcements');
 
         // jwt related apis
         app.post('/jwt', async (req, res) => {
@@ -100,6 +101,12 @@ async function run() {
         })
         app.get('/users', async (req, res) => {
             const result = await userCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get('/tutors', async (req, res) => {
+            const filter = { role: 'tutor' };
+            const result = await userCollection.find(filter).toArray();
             res.send(result);
         })
         // find user role
@@ -246,6 +253,11 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/allMaterials', async (req, res) => {
+            const result = await materialCollection.find().toArray();
+            res.send(result);
+        })
+
         app.patch('/materials/:id', async (req, res) => {
             const update = req.body;
             const id = req.params.id;
@@ -338,9 +350,27 @@ async function run() {
             res.send(result);
         })
 
-        app.post('/myCourseMaterials', (req, res) => {
+        app.post('/myCourseMaterials', async (req, res) => {
             const sessionArray = req.body;
-            console.log(sessionArray);
+            // console.log(sessionArray);
+            const search = {
+                sessionId: {
+                    $in: sessionArray.sessions
+                }
+            }
+            const result = await materialCollection.find(search).toArray();
+            res.send(result);
+        })
+
+        app.post('/announcements', async (req, res) => {
+            const announcement = req.body;
+            const result = await announcementCollection.insertOne(announcement);
+            res.send(result);
+        })
+
+        app.get('/announcements', async (req, res) => {
+            const result = await announcementCollection.find().toArray();
+            res.send(result);
         })
 
 
