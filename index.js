@@ -56,7 +56,7 @@ async function run() {
             if (!req.headers.authorization) {
                 return res.status(401).send({ message: 'unauthorized access' });
             }
-            const token = req.headers.authorization.split(' ')[1];
+            const token = req?.headers?.authorization?.split(' ')[1];
             jwt.verify(token, process.env.ACCESS_TOKEN, (err, decoded) => {
                 if (err) {
                     return res.status(401).send({ message: 'unauthorized access' });
@@ -67,7 +67,7 @@ async function run() {
         }
 
         const verifyAdmin = async (req, res, next) => {
-            const email = req.decoded.email;
+            const email = req?.decoded?.email;
             const query = { email: email };
             const user = await userCollection.findOne(query);
             const isAdmin = user?.role === 'admin';
@@ -77,7 +77,7 @@ async function run() {
             next();
         }
         const verifyTutor = async (req, res, next) => {
-            const email = req.decoded.email;
+            const email = req?.decoded?.email;
             const query = { email: email };
             const user = await userCollection.findOne(query);
             const isTutor = user?.role === 'tutor';
@@ -101,6 +101,13 @@ async function run() {
         })
         app.get('/users', async (req, res) => {
             const result = await userCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.get('/searchUsers', async (req, res) => {
+            const search = req.query.search;
+            console.log(search);
+            const result = await userCollection.find({ $or: [{ name: search }, { email: search }] }).toArray();
             res.send(result);
         })
 
@@ -215,7 +222,7 @@ async function run() {
             res.send(result);
         })
 
-        // make admin or tutor
+        // make admin or tutor or student
         app.patch('/admin/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -233,6 +240,17 @@ async function run() {
             const update = {
                 $set: {
                     role: 'tutor'
+                }
+            }
+            const result = await userCollection.updateOne(query, update);
+            res.send(result);
+        })
+        app.patch('/student/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    role: 'student'
                 }
             }
             const result = await userCollection.updateOne(query, update);
@@ -313,6 +331,12 @@ async function run() {
         app.post('/reviews', async (req, res) => {
             const review = req.body;
             const result = await reviewCollection.insertOne(review);
+            res.send(result);
+        })
+        app.get('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { sessionId: id };
+            const result = await reviewCollection.find(query).toArray();
             res.send(result);
         })
 
