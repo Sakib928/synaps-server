@@ -47,7 +47,7 @@ async function run() {
         // jwt related apis
         app.post('/jwt', async (req, res) => {
             const user = req.body;
-            console.log('from jwt signing', user);
+            // console.log('from jwt signing', user);
             const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
                 expiresIn: '6h'
             })
@@ -125,7 +125,7 @@ async function run() {
         // find user role
         app.get('/role', async (req, res) => {
             const email = req.query.email;
-            console.log('to find the role:', email)
+            // console.log('to find the role:', email)
             const query = { email: email };
             const user = await userCollection.findOne(query);
             res.send(user?.role);
@@ -186,7 +186,7 @@ async function run() {
         app.patch('/reject/:id', verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const feedback = req.body;
-            console.log(feedback);
+            // console.log(feedback);
             const query = { _id: new ObjectId(id) };
             const update = {
                 $set: {
@@ -201,7 +201,7 @@ async function run() {
         // get feedback
         app.get('/feedback/:id', verifyToken, verifyTutor, async (req, res) => {
             const id = req.params.id;
-            console.log('wanting feedback for id', id)
+            // console.log('wanting feedback for id', id)
             const filter = { sessionId: id };
             const feedback = await feedbackCollection.find(filter, { sort: { _id: -1 } }).toArray();
             res.send(feedback[0]);
@@ -308,7 +308,7 @@ async function run() {
         app.post("/create-payment-intent", verifyToken, async (req, res) => {
             const { payment } = req.body;
             const amount = parseInt(payment * 100);
-            console.log('amount to pay in intent', amount);
+            // console.log('amount to pay in intent', amount);
             // Create a PaymentIntent with the order amount and currency
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
