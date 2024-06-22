@@ -37,6 +37,8 @@ async function run() {
         const feedbackCollection = client.db('Synaps').collection('feedbacks');
         const materialCollection = client.db('Synaps').collection('materials');
         const bookedSessionCollection = client.db('Synaps').collection('bookedSessions');
+        const reviewCollection = client.db('Synaps').collection('reviews');
+        const noteCollection = client.db('Synaps').collection('notes');
 
         // jwt related apis
         app.post('/jwt', async (req, res) => {
@@ -69,6 +71,16 @@ async function run() {
             const user = await userCollection.findOne(query);
             const isAdmin = user?.role === 'admin';
             if (!isAdmin) {
+                return res.status(403).send({ status: 'forbidden access' })
+            }
+            next();
+        }
+        const verifyTutor = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await userCollection.findOne(query);
+            const isTutor = user?.role === 'tutor';
+            if (!isTutor) {
                 return res.status(403).send({ status: 'forbidden access' })
             }
             next();
@@ -111,11 +123,22 @@ async function run() {
             const result = await sessionCollection.find({ $or: [{ status: 'pending' }, { status: 'approved' }] }).toArray();
             res.send(result);
         })
+        app.get('/homeSessions', async (req, res) => {
+            const result = await sessionCollection.find({ status: 'approved' }).toArray();
+            res.send(result);
+        })
 
         app.get('/singleSession/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const result = await sessionCollection.findOne(filter);
+            res.send(result);
+        })
+
+        app.get('/singleBookedSession/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await bookedSessionCollection.findOne(query);
             res.send(result);
         })
 
@@ -273,6 +296,51 @@ async function run() {
             const query = { studentEmail: email };
             const result = await bookedSessionCollection.find(query).toArray();
             res.send(result);
+        })
+
+        app.post('/reviews', async (req, res) => {
+            const review = req.body;
+            const result = await reviewCollection.insertOne(review);
+            res.send(result);
+        })
+
+        app.post('/notes', async (req, res) => {
+            const note = req.body;
+            const result = await noteCollection.insertOne(note);
+            res.send(result);
+        })
+
+        app.get('/notes', async (req, res) => {
+            const email = req.query.email;
+            const filter = { userEmail: email };
+            const result = await noteCollection.find(filter).toArray();
+            res.send(result);
+        })
+
+        app.patch('/notes/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const update = req.body;
+            const updatedNote = {
+                $set: {
+                    title: update.title,
+                    note: update.note
+                }
+            }
+            const result = await noteCollection.updateOne(filter, updatedNote);
+            res.send(result);
+        })
+
+        app.delete('/notes/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const result = await noteCollection.deleteOne(filter);
+            res.send(result);
+        })
+
+        app.post('/myCourseMaterials', (req, res) => {
+            const sessionArray = req.body;
+            console.log(sessionArray);
         })
 
 
