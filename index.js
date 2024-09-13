@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 
 
 app.use(cors({
-    origin: ['http://localhost:5173', 'https://a-12-client.web.app', 'https://a-12-client.firebaseapp.com'],
+    origin: ['http://localhost:5173', 'https://a-12-client.web.app', 'https://a-12-client.firebaseapp.com', 'https://synaps-edu.netlify.app'],
     credentials: true
 }))
 app.use(express.json())
